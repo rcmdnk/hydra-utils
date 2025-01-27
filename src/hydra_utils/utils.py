@@ -111,6 +111,9 @@ def update_conf(conf: DictConfig) -> dict[Any, Any]:
     if not isinstance(conf_dict, dict):
         msg = 'Config is not a dictionary.'
         raise TypeError(msg)
+
+    conf_dict = get_conf_dict(conf_dict)
+
     return conf_dict
 
 
@@ -157,8 +160,12 @@ def cpu_count(n_jobs: int | None) -> int:
     return n_jobs
 
 
+def fix_n_jobs(conf_dict: dict[Any, Any]) -> None:
+    conf_dict['n_jobs'] = cpu_count(conf_dict.get('n_jobs', -1))
+
+
 def fix_conf(conf_dict: dict[Any, Any]) -> None:
-    pass
+    fix_n_jobs(conf_dict)
 
 
 def get_conf_dict(conf_dict: dict[Any, Any] | str) -> dict[Any, Any]:

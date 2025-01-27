@@ -31,6 +31,8 @@ def fix_argv() -> None:
         if '=' not in sys.argv[i]:
             if Path(sys.argv[i]).exists():
                 conf_file = sys.argv[i]
+                sys.argv.pop(i)
+
         elif sys.argv[i].startswith('conf_file='):
             sys.argv[i] = f'+{sys.argv[i]}'
             conf_file = ''

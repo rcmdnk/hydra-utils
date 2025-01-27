@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import sys
 from pathlib import Path
@@ -24,24 +25,27 @@ def to_absolute_path(path: str) -> str:
     return hydra.utils.to_absolute_path(path)
 
 
-def fix_argv() -> None:
+def fix_argv(argv: list[str]) -> list[str]:
     """Add conf_file=... to sys.argv if no conf_file=... is given and a positional argument is given."""
     conf_file = ''
-    for i in range(1, len(sys.argv)):
-        if '=' not in sys.argv[i]:
-            if Path(sys.argv[i]).exists():
-                conf_file = sys.argv[i]
-                sys.argv.pop(i)
+    argv = argv.copy()
+    for i in range(1, len(argv)):
+        if '=' not in argv[i]:
+            if Path(argv[i]).exists():
+                conf_file = argv[i]
+                argv.pop(i)
+                break
 
-        elif sys.argv[i].startswith('conf_file='):
-            sys.argv[i] = f'+{sys.argv[i]}'
+        elif argv[i].startswith('conf_file='):
+            argv[i] = f'+{argv[i]}'
             conf_file = ''
             break
-        elif sys.argv[i].startswith('+conf_file='):
+        elif argv[i].startswith('+conf_file='):
             conf_file = ''
             break
     if conf_file:
-        sys.argv.append(f'+conf_file={conf_file}')
+        argv.append(f'+conf_file={conf_file}')
+    return argv
 
 
 def merge_conf(conf1: DictConfig, conf2: DictConfig) -> DictConfig:
@@ -215,11 +219,10 @@ def set_log(log_format: str, log_level: str) -> logging.Logger:
 def starting_log(
     log: logging.Logger, app_name: str, app_version: str, app_file: str
 ) -> None:
-    log.info('Starting...')
+    output = f'Starting {app_name}'
     if app_version:
-        log.info(f'{app_name} version: {app_version}')
-    else:
-        log.info(f'{app_name}')
+        output += f' version: {app_version}'
+    log.info(output)
     log.info('Python version: %s', sys.version)
     if app_file:
         check_git(app_file, log)
@@ -263,9 +266,20 @@ def hydra_wrapper(
     def _wrapper(
         run: Callable[[dict[Any, Any]], None],
     ) -> Callable[[dict[Any, Any]], None]:
-        fix_argv()
+        sys.argv = fix_argv(sys.argv)
 
-        @hydra.main(**(main_opt(config_path, config_name, version_base)))
+        caller = inspect.stack()[1].filename
+        if config_path:
+            _config_path = str(Path(caller).parent / Path(config_path))
+        else:
+            _config_path = ''
+
+        if app_file:
+            _app_file = app_file
+        else:
+            _app_file = caller
+
+        @hydra.main(**(main_opt(_config_path, config_name, version_base)))
         def hydra_main(conf: DictConfig) -> None:
             conf_dict = update_conf(conf)
             _app_name = (
@@ -284,7 +298,7 @@ def hydra_wrapper(
                 conf_dict.get('log_level', ''),
             )
             if verbose > 0:
-                starting_log(log, _app_name, _app_version, app_file)
+                starting_log(log, _app_name, _app_version, _app_file)
             exit_code = 0
             try:
                 if conf_dict.get('check_profile', False):

@@ -19,7 +19,12 @@ pip install hydra-utils
 
 ```python
 @hydra_utils.hydra_wrapper(
-    app_name='my_app', app_version='0.1.0', app_file=__file__
+    app_name='my_app',
+    app_version='0.1.0',
+    app_file=__file__,
+    conf_path='conf',
+    conf_name='config',
+    version_base='1.2',
 )
 def main(conf: dict[Any, Any]) -> None: ...
 
@@ -32,7 +37,7 @@ if __name__ == '__main__':
   - It is useful if app_version is set to `__version__` of the app.
 - `app_file` is used to check the file place's git status to log the git commit hash and diff from the last commit.
 - The argument which the main function takes is `dict[Any, Any]` instead of `DictConfig`.
-- Configuration file can be passed by the first argument or `conf=...` at the command line.
+- Configuration file can be passed by the first argument or `conf_file=...` at the command line, which will be merged to the configuration file specified by conf_path and conf_name.
 - Configuration file can have `include` keyword which has the list of configuration files to include.
   - Included files are merged to the main configuration file.
   - It is resolved at the place of `include`. If the main file has other configurations after the `include`, they will overwrite the included configurations.

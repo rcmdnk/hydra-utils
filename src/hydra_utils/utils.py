@@ -11,8 +11,8 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 
-HYDRA_USER_CONF_ORIG = Path('./.hydra/user_conf_orig.yaml')
-HYDRA_USER_CONF = Path('./.hydra/user_conf.yaml')
+HYDRA_USER_CONF_ORIG = '.hydra/user_conf_orig.yaml'
+HYDRA_USER_CONF = '.hydra/user_conf.yaml'
 
 
 def to_absolute_path(path: str) -> str:
@@ -25,20 +25,21 @@ def to_absolute_path(path: str) -> str:
 
 
 def fix_argv() -> None:
-    """Add conf=... to sys.argv if no conf=... is given and a positional argument is given."""
-    conf_cand: list[str] = []
-    for v in sys.argv[1:]:
-        if '=' not in v:
-            conf_cand.append(v)
-        elif v.startswith('conf='):
-            conf_cand = []
+    """Add conf_file=... to sys.argv if no conf_file=... is given and a positional argument is given."""
+    conf_file = ''
+    for i in range(1, len(sys.argv)):
+        if '=' not in sys.argv[i]:
+            if Path(sys.argv[i]).exists():
+                conf_file = sys.argv[i]
+        elif sys.argv[i].startswith('conf_file='):
+            sys.argv[i] = f'+{sys.argv[i]}'
+            conf_file = ''
             break
-    if conf_cand:
-        for c in conf_cand:
-            if Path(c).exists():
-                sys.argv.remove(c)
-                sys.argv.append(f'conf={c}')
-                break
+        elif sys.argv[i].startswith('+conf_file='):
+            conf_file = ''
+            break
+    if conf_file:
+        sys.argv.append(f'+conf_file={conf_file}')
 
 
 def merge_conf(conf1: DictConfig, conf2: DictConfig) -> DictConfig:
@@ -91,19 +92,35 @@ def read_conf(conf_path: str, base_conf_path: str = '') -> DictConfig:
     return merge_conf(conf_final, conf_pre)
 
 
+def main_opt(
+    config_path: str, config_name: str, version_base: str
+) -> dict[str, str]:
+    opt: dict[str, str] = {}
+    if config_path:
+        opt['config_path'] = config_path
+    if config_name:
+        opt['config_name'] = config_name
+    if version_base:
+        opt['version_base'] = version_base
+    return opt
+
+
 def update_conf(conf: DictConfig) -> dict[Any, Any]:
     from omegaconf import OmegaConf
 
-    if conf.conf:
+    if 'conf_file' in conf:
         # Override configurations by user_config (conf).
         # Command line options will overwrite these user_config parameters.
         # (No default conf parameters other than `conf`.)
-        user_conf = read_conf(conf.conf)
-        OmegaConf.save(user_conf, HYDRA_USER_CONF_ORIG)
+        output_dir = (
+            hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+        )
+        user_conf = read_conf(conf.conf_file)
+        OmegaConf.save(user_conf, f'{output_dir}/{HYDRA_USER_CONF_ORIG}')
         OmegaConf.set_struct(conf, False)
-        del conf['conf']
+        del conf['conf_file']
         conf_merge = merge_conf(user_conf, conf)
-        OmegaConf.save(conf_merge, HYDRA_USER_CONF)
+        OmegaConf.save(conf_merge, f'{output_dir}/{HYDRA_USER_CONF}')
         conf_dict = OmegaConf.to_container(conf_merge, resolve=True)
     else:
         conf_dict = OmegaConf.to_container(conf, resolve=True)
@@ -193,6 +210,23 @@ def set_log(log_format: str, log_level: str) -> logging.Logger:
     return log
 
 
+def starting_log(
+    log: logging.Logger, app_name: str, app_version: str, app_file: str
+) -> None:
+    log.info('Starting...')
+    if app_version:
+        log.info(f'{app_name} version: {app_version}')
+    else:
+        log.info(f'{app_name}')
+    log.info('Python version: %s', sys.version)
+    if app_file:
+        check_git(app_file, log)
+
+
+def ending_log(log: logging.Logger, cwd: Path) -> None:
+    log.info('Finished. Output directory: %s', cwd)
+
+
 def run_with_check_profile(
     run: Callable[[dict[Any, Any]], None],
     conf_dict: dict[Any, Any],
@@ -217,9 +251,10 @@ def hydra_wrapper(
     app_name: str = '',
     app_version: str = '',
     app_file: str = '',
-    config_path: str = 'conf',
-    config_name: str = 'config',
-    version_base: str = '1.2',
+    config_path: str = '',
+    config_name: str = '',
+    version_base: str = '',
+    verbose: int = 1,
 ) -> Callable[
     [Callable[[dict[Any, Any]], None]], Callable[[dict[Any, Any]], None]
 ]:
@@ -228,34 +263,26 @@ def hydra_wrapper(
     ) -> Callable[[dict[Any, Any]], None]:
         fix_argv()
 
-        @hydra.main(
-            config_path=config_path,
-            config_name=config_name,
-            version_base=version_base,
-        )
+        @hydra.main(**(main_opt(config_path, config_name, version_base)))
         def hydra_main(conf: DictConfig) -> None:
             conf_dict = update_conf(conf)
-            _app_name = app_name if app_name else conf_dict.get('app_name', '')
+            _app_name = (
+                app_name
+                if app_name
+                else conf_dict.get('app_name', sys.argv[0])
+            )
             _app_version = (
                 app_version
                 if app_version
                 else conf_dict.get('app_version', '')
             )
-            if not _app_name:
-                _app_name = 'App'
 
             log = set_log(
                 conf_dict.get('log_format', ''),
                 conf_dict.get('log_level', ''),
             )
-            if _app_version:
-                if not _app_name:
-                    _app_name = 'App'
-                log.info(f'{_app_name} version: {_app_version}')
-            log.info('Python version: %s', sys.version)
-            if app_file:
-                check_git(app_file, log)
-
+            if verbose > 0:
+                starting_log(log, _app_name, _app_version, app_file)
             exit_code = 0
             try:
                 if conf_dict.get('check_profile', False):
@@ -265,7 +292,8 @@ def hydra_wrapper(
             except Exception as e:
                 exit_code = e.args[0] if e.args else 1
                 log.exception(e.args[1] if e.args else '')
-            log.info('Finished. Output directory: %s', Path.cwd())
+            if verbose > 0:
+                ending_log(log, Path.cwd())
             if exit_code:
                 sys.exit(exit_code)
 

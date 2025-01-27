@@ -260,12 +260,10 @@ def hydra_wrapper(
     config_name: str = '',
     version_base: str = '',
     verbose: int = 1,
-) -> Callable[
-    [Callable[[dict[Any, Any]], None]], Callable[[dict[Any, Any]], None]
-]:
+) -> Callable[[Callable[[dict[Any, Any]], None]], Callable[[], None]]:
     def _wrapper(
         run: Callable[[dict[Any, Any]], None],
-    ) -> Callable[[dict[Any, Any]], None]:
+    ) -> Callable[[], None]:
         sys.argv = fix_argv(sys.argv)
 
         caller = inspect.stack()[1].filename

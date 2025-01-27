@@ -43,4 +43,13 @@ if __name__ == '__main__':
   - If `n_jobs` is set to None, it is set to the number of physical cores.
   - If `n_jobs` is set to a negative number, it is set to the number of logical cores + 1 + n_jobs, i.e. -1 is the same as the number of logical cores.
 
+There is also wrapper function for `to_absolute_path`.
+
+```python
+from hydra_utils import to_absolute_path
+```
+
+- It returns empty string if the input is empty.
+- It returns the input as is if the input includes `:` (e.g., `http://`, `s3://`, ...).
+
 Based on [rcmdnk/python-template](https://github.com/rcmdnk/python-template), v0.1.2

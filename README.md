@@ -3,19 +3,44 @@
 [![test](https://github.com/rcmdnk/hydra-utils/actions/workflows/test.yml/badge.svg)](https://github.com/rcmdnk/hydra-utils/actions/workflows/test.yml)
 [![test coverage](https://img.shields.io/badge/coverage-check%20here-blue.svg)](https://github.com/rcmdnk/hydra-utils/tree/coverage)
 
-...
+Wrapper for ([hydra-core](https://pypi.org/project/hydra-core/) to add flexible configuration treatment.
 
 ## Requirement
 
 - Python 3.13, 3.12, 3.11, 3.10
-- [uv](https://docs.astral.sh/uv/)
 
 ## Installation
 
-...
+```bash
+pip install hydra-utils
+```
 
 ## Usage
 
-...
+```python
+@hydra_utils.hydra_wrapper(
+    app_name='my_app', app_version='0.1.0', app_file=__file__
+)
+def main(conf: dict[Any, Any]) -> None: ...
+
+
+if __name__ == '__main__':
+    main()
+```
+
+- `app_name` and `app_version` are used to log information of current version.
+  - It is useful if app_version is set to `__version__` of the app.
+- `app_file` is used to check the file place's git status to log the git commit hash and diff from the last commit.
+- The argument which the main function takes is `dict[Any, Any]` instead of `DictConfig`.
+- Configuration file can be passed by the first argument or `conf=...` at the command line.
+- Configuration file can have `include` keyword which has the list of configuration files to include.
+  - Included files are merged to the main configuration file.
+  - It is resolved at the place of `include`. If the main file has other configurations after the `include`, they will overwrite the included configurations.
+- `n_jobs` is fixed to the number of CPUs.
+  - It is used to set the number of jobs for parallel processing.
+  - If `n_jobs` is set to 0 or 1, it is set to 1.
+  - If `n_jobs` is set to -1, it is set to the number of logical cores.
+  - If `n_jobs` is set to None, it is set to the number of physical cores.
+  - If `n_jobs` is set to a negative number, it is set to the number of logical cores + 1 + n_jobs, i.e. -1 is the same as the number of logical cores.
 
 Based on [rcmdnk/python-template](https://github.com/rcmdnk/python-template), v0.1.2

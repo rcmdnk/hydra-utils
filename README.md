@@ -48,6 +48,16 @@ if __name__ == '__main__':
   - If `n_jobs` is set to None, it is set to the number of physical cores.
   - If `n_jobs` is set to a negative number, it is set to the number of logical cores + 1 + n_jobs, i.e. -1 is the same as the number of logical cores.
 
+It is recommended to define `hydra.job.name` in your default configuration file (`<conf_pth>/<conf_name>.yaml`):
+
+```
+hydra:
+  job:
+    name: my_custom_job_name
+```
+
+Otherwise the job name is `utils` as hydra detect the file where `hydra.main` is executed.
+
 There is also wrapper function for `to_absolute_path`.
 
 ```python

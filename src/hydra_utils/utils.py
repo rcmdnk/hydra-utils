@@ -252,7 +252,7 @@ def run_with_check_profile(
     log.info(s.getvalue())
 
 
-def hydra_wrapper(
+def hydra_wrapper(  # noqa: C901
     app_name: str = '',
     app_version: str = '',
     app_file: str = '',
@@ -304,8 +304,9 @@ def hydra_wrapper(
                 else:
                     run(conf_dict)
             except Exception as e:
-                exit_code = e.args[0] if e.args else 1
-                log.exception(e.args[1] if e.args else '')
+                exit_code = 1
+                for arg in e.args:
+                    log.exception(arg)
             if verbose > 0:
                 ending_log(log, Path.cwd())
             if exit_code:

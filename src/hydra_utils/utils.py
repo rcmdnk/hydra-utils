@@ -35,14 +35,16 @@ def fix_argv(argv: list[str]) -> list[str]:
                 conf_file = argv[i]
                 argv.pop(i)
                 break
-
-        elif argv[i].startswith('conf_file='):
-            argv[i] = f'+{argv[i]}'
-            conf_file = ''
-            break
-        elif argv[i].startswith('+conf_file='):
-            conf_file = ''
-            break
+        elif (
+            argv[i].startswith('conf=')
+            or argv[i].startswith('+conf=')
+            or argv[i].startswith('conf_file=')
+            or argv[i].startswith('+conf_file=')
+            or argv[i].startswith('config_file=')
+            or argv[i].startswith('+config_file=')
+        ):
+            conf_file = argv[i].split('=')[1]
+            argv.pop(i)
     if conf_file:
         argv.append(f'+conf_file={conf_file}')
     return argv

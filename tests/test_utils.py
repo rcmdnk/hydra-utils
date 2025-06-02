@@ -1,6 +1,5 @@
-import sys
+import subprocess
 from copy import deepcopy
-from pathlib import Path
 
 import pytest
 import yaml
@@ -100,71 +99,58 @@ def test_read_conf(tmp_obj: pytest.fixture) -> None:
         ('+conf_file=', 0, 0),
         ('', 0, 0),
         ('conf_file=', 1, 1),
+        ('conf=', 1, 1),
+        ('+conf=', 1, 1),
     ],
 )
 def test_log_conf(
     tmp_obj: pytest.fixture,
-    monkeypatch: pytest.fixture,
     conf_prefix,
     conf_file,
     result_file,
 ) -> None:
-    tmpdir = tmp_obj[0]
+    tmp_path = tmp_obj[0]
     test_files = tmp_obj[1]
     test_results = tmp_obj[2]
     argv = [
-        'my_app',
         f'{conf_prefix}{test_files[conf_file]}',
-        f'hydra.run.dir={Path(tmpdir) / "log"}',
+        f'hydra.run.dir={tmp_path / "log"}',
     ]
-    with monkeypatch.context() as m:
-        m.setattr('sys.argv', argv)
-        if 'main' in sys.modules:
-            del sys.modules['main']
-        from hydra_utils.dummy import main
-
-        main()
-        with Path(
-            Path(tmpdir) / 'log' / '.hydra' / 'user_conf.yaml'
-        ).open() as f:
-            conf = yaml.safe_load(f)
-        assert conf == test_results[result_file]
+    subprocess.run(  # noqa: S603
+        ['hydra-dummy'] + argv,
+        capture_output=True,
+        text=True,
+    )
+    with (tmp_path / 'log' / '.hydra' / 'user_conf.yaml').open() as f:
+        conf = yaml.safe_load(f)
+    assert conf == test_results[result_file]
 
 
-def test_log_conf_args(
-    tmp_obj: pytest.fixture, monkeypatch: pytest.fixture
-) -> None:
-    tmpdir = tmp_obj[0]
+def test_log_conf_args(tmp_obj: pytest.fixture) -> None:
+    tmp_path = tmp_obj[0]
     test_files = tmp_obj[1]
     test_results = tmp_obj[2]
     argv = [
-        'my_app',
         f'conf_file={test_files[0]}',
-        f'hydra.run.dir={Path(tmpdir) / "log2"}',
+        f'hydra.run.dir={tmp_path / "log2"}',
         '+b=9',
         '+d.d2=3',
         '+d.d3=4',
         '+e=5',
     ]
-    with monkeypatch.context() as m:
-        m.setattr('sys.argv', argv)
-        if 'main' in sys.modules:
-            del sys.modules['main']
-        from hydra_utils.dummy import main
-
-        main()
-        with Path(
-            Path(tmpdir) / 'log2' / '.hydra' / 'user_conf_orig.yaml'
-        ).open() as f:
-            conf = yaml.safe_load(f)
-        assert conf == test_results[0]
-        with Path(
-            Path(tmpdir) / 'log2' / '.hydra' / 'user_conf.yaml'
-        ).open() as f:
-            conf = yaml.safe_load(f)
-        result = deepcopy(test_results[0])
-        result['b'] = 9
-        result['d']['d2'] = 3
-        result['d']['d3'] = 4
-        result['e'] = 5
-        assert conf == result
+    subprocess.run(  # noqa: S603
+        ['hydra-dummy'] + argv,
+        capture_output=True,
+        text=True,
+    )
+    with (tmp_path / 'log2' / '.hydra' / 'user_conf_orig.yaml').open() as f:
+        conf = yaml.safe_load(f)
+    assert conf == test_results[0]
+    with (tmp_path / 'log2' / '.hydra' / 'user_conf.yaml').open() as f:
+        conf = yaml.safe_load(f)
+    result = deepcopy(test_results[0])
+    result['b'] = 9
+    result['d']['d2'] = 3
+    result['d']['d3'] = 4
+    result['e'] = 5
+    assert conf == result

@@ -40,8 +40,6 @@ def fix_argv(argv: list[str]) -> list[str]:
             or argv[i].startswith('+conf=')
             or argv[i].startswith('conf_file=')
             or argv[i].startswith('+conf_file=')
-            or argv[i].startswith('config_file=')
-            or argv[i].startswith('+config_file=')
         ):
             conf_file = argv[i].split('=')[1]
             argv.pop(i)

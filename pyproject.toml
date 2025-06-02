@@ -13,6 +13,10 @@ dependencies = [
     "joblib>=1.4.2",
 ]
 
+[project.urls]
+Repository = "https://github.com/rcmdnk/hydra-utils"
+Homepage = "https://github.com/rcmdnk/hydra-utils"
+
 [dependency-groups]
 dev = [
     "tomli >= 2.0.1; python_version < '3.11'",
@@ -29,9 +33,8 @@ dev = [
     "types-six>=1.16.21.20241105",
 ]
 
-[project.urls]
-Repository = "https://github.com/rcmdnk/hydra-utils"
-Homepage = "https://github.com/rcmdnk/hydra-utils"
+[project.scripts]
+hydra-dummy = 'hydra_utils.dummy:main'
 
 [build-system]
 requires = ["hatchling"]

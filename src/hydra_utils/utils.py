@@ -45,6 +45,7 @@ def fix_argv(argv: list[str]) -> list[str]:
         ):
             conf_file = argv[i].split('=')[1]
             argv.pop(i)
+            break
     if conf_file:
         argv.append(f'+conf_file={conf_file}')
     return argv

@@ -1,6 +1,6 @@
 [project]
 name = "hydra-utils"
-version = "0.3.2"
+version = "0.3.3"
 description = "Utilities for hydra-core library"
 authors = [ { name = "rcmdnk", email = "rcmdnk@gmail.com" } ]
 readme = "README.md"

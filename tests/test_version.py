@@ -1,4 +1,8 @@
+from __future__ import annotations
+
+import importlib
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 from git import Repo
@@ -9,10 +13,9 @@ from hydra_utils import __version__
 
 def test_version() -> None:
     try:
-        import tomllib
+        tomllib: ModuleType = importlib.import_module('tomllib')
     except ModuleNotFoundError:
-        import tomli as tomllib
-
+        tomllib = importlib.import_module('tomli')
     with (Path(__file__).parents[1] / 'pyproject.toml').open('rb') as f:
         version = tomllib.load(f)['project']['version']
     assert version == __version__

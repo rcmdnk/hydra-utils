@@ -6,6 +6,7 @@ repos:
   - id: ruff-lint
   - id: ruff-format-diff
   - id: ruff-format
+  - id: ty
   - id: mypy
   - id: numpydoc-validation
   - id: shellcheck

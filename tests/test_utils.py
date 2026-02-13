@@ -1,5 +1,7 @@
 import subprocess
 from copy import deepcopy
+from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -9,7 +11,9 @@ from hydra_utils.utils import read_conf
 
 
 @pytest.fixture
-def tmp_obj(tmp_path: pytest.fixture) -> tuple:
+def tmp_obj(
+    tmp_path: Path,
+) -> tuple[Path, tuple[Path, Path], tuple[dict[str, Any], dict[str, Any]]]:
     test1 = tmp_path / 'test1.yml'
     test1.write_text(
         """---
@@ -80,7 +84,11 @@ include:
     )
 
 
-def test_read_conf(tmp_obj: pytest.fixture) -> None:
+def test_read_conf(
+    tmp_obj: tuple[
+        Path, tuple[Path, Path], tuple[dict[str, Any], dict[str, Any]]
+    ],
+) -> None:
     test_files = tmp_obj[1]
     test_results = tmp_obj[2]
     conf = read_conf(str(test_files[0]))
@@ -104,7 +112,9 @@ def test_read_conf(tmp_obj: pytest.fixture) -> None:
     ],
 )
 def test_log_conf(
-    tmp_obj: pytest.fixture,
+    tmp_obj: tuple[
+        Path, tuple[Path, Path], tuple[dict[str, Any], dict[str, Any]]
+    ],
     conf_prefix,
     conf_file,
     result_file,
@@ -126,7 +136,11 @@ def test_log_conf(
     assert conf == test_results[result_file]
 
 
-def test_log_conf_args(tmp_obj: pytest.fixture) -> None:
+def test_log_conf_args(
+    tmp_obj: tuple[
+        Path, tuple[Path, Path], tuple[dict[str, Any], dict[str, Any]]
+    ],
+) -> None:
     tmp_path = tmp_obj[0]
     test_files = tmp_obj[1]
     test_results = tmp_obj[2]

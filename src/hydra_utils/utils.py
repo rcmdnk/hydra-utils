@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, cast
 
 import hydra
+from hydra.core.hydra_config import HydraConfig
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -119,9 +120,7 @@ def update_conf(conf: DictConfig) -> dict[Any, Any]:
         # Override configurations by user_config (conf).
         # Command line options will overwrite these user_config parameters.
         # (No default conf parameters other than `conf`.)
-        output_dir = (
-            hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
-        )
+        output_dir = HydraConfig.get().runtime.output_dir
         user_conf = read_conf(conf.conf_file)
         OmegaConf.save(user_conf, f'{output_dir}/{HYDRA_USER_CONF_ORIG}')
         OmegaConf.set_struct(conf, False)
@@ -178,7 +177,10 @@ def cpu_count(n_jobs: int | None) -> int:
     if n_jobs < 0:
         from os import cpu_count
 
-        return cpu_count() + 1 + n_jobs
+        logical_cores = cpu_count()
+        if logical_cores is None:
+            return 1
+        return logical_cores + 1 + n_jobs
     if n_jobs == 0:
         return 1
     return n_jobs

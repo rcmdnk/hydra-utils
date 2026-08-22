@@ -24,7 +24,6 @@ pip install hydra-utils
     app_file=__file__,
     config_path='conf',
     config_name='config',
-    version_base='1.2',
     verbose=1,
 )
 def main(conf: dict[Any, Any]) -> None: ...
